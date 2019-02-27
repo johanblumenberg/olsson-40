@@ -22,48 +22,57 @@
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-char ssid[] = "getskump4";  //  your network SSID (name)
-char pass[] = "getskump1234";       // your network password
+char ssid[] = "saftkalas";
+char pass[] = "8005300167";
 
-String line = "Olle är bäst på allt och snygg som fan" ;
+const char line[] = "Game Over when counter reaches zero";
 long long DATE = 1582588800000LL;
 
-void setup() {
-  Serial.begin(115200);
-
-  Wire.begin(D2, D1);
-  lcd.begin();
-  lcd.home();
-  lcd.clear();
-
-  lcd.print("booting...");
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, pass);
-  
-  Serial.print("Waiting for WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");  
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  configTime(1 * 3600, 0, "pool.ntp.org", "time.nist.gov");
-
-  Serial.print("Waiting for time");
-  while (!time(nullptr)) {
-    Serial.print(".");
-    delay(500);
-  }
-  Serial.println("");
-}
-
-void loop() { 
+long long time() {
   struct timeval tv;
   gettimeofday(&tv, nullptr);
-  long long now = 1000LL * tv.tv_sec + tv.tv_usec / 1000;
+  return 1000LL * tv.tv_sec + tv.tv_usec / 1000;  
+}
+
+void updateText(long long now) {
+  static int         p = 0;
+  static long long   t = 0;
+  static const char* str = line;
+  static int         len = strlen(str);
+  static const int   DT = 350;
+  
+  if (t == 0) {
+    p = 16;
+    t = now;
+  } else if (now - t > DT) {
+    t += DT;
+    
+    p--;
+    if (p < -len) {
+      p = 16;
+    }
+
+    char tmp[17];
+
+    for (int i = 0; i < 16; i++) {
+      if (i < p) {
+        tmp[i] = ' ';
+      } else if (i >= p + len) {
+        tmp[i] = ' ';
+      } else {
+        tmp[i] = str[i - p];
+      }
+      tmp[16] = '\0';
+    }
+    
+    Serial.println(tmp);
+  
+    lcd.setCursor(0, 1);
+    lcd.print(tmp);
+  }
+}
+
+void updateTime(long long now) {
   long long delta = DATE - now;
 
   delta /= 10;
@@ -77,14 +86,56 @@ void loop() {
   delta /= 24;
   int d = delta;
   
-  char tmp[16];
+  char tmp[17];
   sprintf(tmp, "%4d %02d:%02d:%02d.%02d", d, h, m, s, cs);
 
   Serial.println(tmp);
-
-  lcd.clear();
+  
   lcd.setCursor(0, 0);
   lcd.print(tmp);
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  Wire.begin(D2, D1);
+  lcd.begin();
+  lcd.home();
+  lcd.clear();
+
+  lcd.print("booting..");
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, pass);
+  
+  Serial.print("Waiting for WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");  
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  lcd.print(".");
+
+  configTime(1 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+
+  Serial.print("Waiting for time");
+  while (time() < 946684800000LL) { // 2000-01-01
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println("");
+  
+  lcd.clear();
+}
+
+void loop() {
+  long long now = time();
+
+  updateTime(now);
+  updateText(now);
 
   delay(70); 
 }

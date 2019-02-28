@@ -36,11 +36,11 @@ enum State {
 };
 
 State state(long long now) {
-  if (now < DATE + 10*1000) {
+  if (now > DATE - 10*1000) {
     return ONEUP;
-  } else if (now < DATE + 25*1000) {
+  } else if (now > DATE - 25*1000) {
     return BLANK;
-  } else if (now < DATE + 60*60*1000) {
+  } else if (now > DATE - 60*60*1000) {
     return PANIC;
   } else {
     return COUNTDOWN;
@@ -209,6 +209,10 @@ void setup() {
   Serial.println("");
   
   lcd.clear();
+
+// For testing, close to the point when countdown reaches zero
+//  delay(1000);
+//  DATE = time() + 60*1000;
 }
 
 void loop() {

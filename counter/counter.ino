@@ -26,7 +26,7 @@ char ssid[] = "saftkalas";
 char pass[] = "8005300167";
 
 const char line[] = "Game Over when counter reaches zero";
-long long DATE = 1582588800000LL;
+long long DATE = 0;
 
 enum State {
   COUNTDOWN,
@@ -38,7 +38,7 @@ enum State {
 State state(long long now) {
   if (now > DATE - 10*1000) {
     return ONEUP;
-  } else if (now > DATE - 25*1000) {
+  } else if (now > DATE - 19*1000) {
     return BLANK;
   } else if (now > DATE - 60*60*1000) {
     return PANIC;
@@ -53,12 +53,37 @@ long long time() {
   return 1000LL * tv.tv_sec + tv.tv_usec / 1000;  
 }
 
+long long nextDate(long long now) {
+  time_t    t = now / 1000;
+  struct tm tm;
+  localtime_r(&t, &tm);
+
+  tm.tm_sec = 0;
+  tm.tm_min = 0;
+  tm.tm_hour = 23;
+  tm.tm_mday = 24;
+  tm.tm_mon = 1;
+  
+  long long date = 1000LL * mktime(&tm);
+
+  if (date < now) {
+    tm.tm_year += 1;
+    date = 1000LL * mktime(&tm);    
+  }
+  
+  char tmp[24];
+  sprintf(tmp, "Date: %lld", date);
+  Serial.println(tmp);
+  
+  return date;
+}
+
 void updateText(long long now) {
   static int         p = 0;
   static long long   t = 0;
   static const char* str = line;
   static int         len = strlen(str);
-  static const int   DT = 350;
+  static const int   DT = 300;
   
   if (t == 0) {
     p = 16;
@@ -210,13 +235,17 @@ void setup() {
   
   lcd.clear();
 
-// For testing, close to the point when countdown reaches zero
+// For testing, close to the point when the countdown reaches zero
 //  delay(1000);
 //  DATE = time() + 60*1000;
 }
 
 void loop() {
   long long now = time();
+
+  if (now > DATE) {
+    DATE = nextDate(now);
+  }
 
   switch (state(now)) {
     case COUNTDOWN:
